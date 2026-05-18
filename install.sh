@@ -18,6 +18,8 @@ SKILL_SRC="$REPO_ROOT/skills/pymol"
 SKILL_DST="$HOME/.claude/skills/pymol"
 VENV="$REPO_ROOT/.venv"
 CLAMOL_BIN="$VENV/bin/clamol"
+LAUNCHER_BIN="$VENV/bin/clamol-launch-pymol"
+BIN_DIR="$HOME/.local/bin"
 
 # ─── flags ─────────────────────────────────────────────────────────────────
 ASSUME_YES=0
@@ -116,11 +118,11 @@ fi
 
 # ─── step 1: venv ──────────────────────────────────────────────────────────
 section "Step 1 — Python venv + editable install"
-why  "Creates $VENV and runs \`pip install -e .\` so the \`clamol\` and"
-why  "\`clamol-launch-pymol\` console scripts are on disk."
+why  "Creates $VENV, runs \`pip install -e .\`, and symlinks the \`clamol\` and"
+why  "\`clamol-launch-pymol\` console scripts into $BIN_DIR so they're on \$PATH."
 
 if [[ -x $CLAMOL_BIN ]]; then
-  ok "venv already exists at $VENV — skipping"
+  ok "venv already exists at $VENV — skipping create"
 elif ask "Create venv and install clamol?" "Y"; then
   run "python3 -m venv $VENV"
   python3 -m venv "$VENV"
@@ -129,6 +131,41 @@ elif ask "Create venv and install clamol?" "Y"; then
   ok "venv ready: $CLAMOL_BIN"
 else
   warn "skipped — later steps will fail without a clamol binary"
+fi
+
+# Symlink console scripts onto PATH so `clamol-launch-pymol` is reachable
+# from anywhere — not just when the venv is activated.
+if [[ -x $CLAMOL_BIN ]]; then
+  link_needed=0
+  for src in "$CLAMOL_BIN" "$LAUNCHER_BIN"; do
+    name="$(basename "$src")"
+    dst="$BIN_DIR/$name"
+    if [[ -L $dst && "$(readlink "$dst")" == "$src" ]]; then
+      continue
+    fi
+    link_needed=1; break
+  done
+  if (( link_needed )); then
+    if ask "Symlink console scripts into $BIN_DIR?" "Y"; then
+      mkdir -p "$BIN_DIR"
+      for src in "$CLAMOL_BIN" "$LAUNCHER_BIN"; do
+        name="$(basename "$src")"
+        dst="$BIN_DIR/$name"
+        run "ln -sfn $src $dst"
+        ln -sfn "$src" "$dst"
+      done
+      # PATH sanity check — warn if BIN_DIR isn't on PATH
+      case ":$PATH:" in
+        *":$BIN_DIR:"*) ok "$BIN_DIR is on \$PATH — \`clamol-launch-pymol\` should work in any shell" ;;
+        *) warn "$BIN_DIR is not on \$PATH. Add this to your shell rc:"
+           note "    export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
+      esac
+    else
+      note "skipped — invoke commands via full path: $CLAMOL_BIN"
+    fi
+  else
+    ok "console scripts already symlinked into $BIN_DIR"
+  fi
 fi
 
 # ─── step 2: skill symlink ─────────────────────────────────────────────────

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "clamol": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/julesberman/clamol", "clamol"]
+    }
+  }
+}

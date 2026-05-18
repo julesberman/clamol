@@ -168,32 +168,43 @@ if [[ -x $CLAMOL_BIN ]]; then
   fi
 fi
 
-# ─── step 2: skill symlink ─────────────────────────────────────────────────
-section "Step 2 — install the pymol skill"
-why  "Symlinks $SKILL_SRC into $SKILL_DST."
-why  "Symlink (not copy) so \`git pull\` updates everyone's skill in place."
+# ─── step 2: skill copy (optional) ─────────────────────────────────────────
+section "Step 2 — install the pymol skill ${D}(optional)${R}"
+why  "Copies $SKILL_SRC into $SKILL_DST."
+why  "The skill teaches Claude when to call clamol tools and how to use them"
+why  "(selection syntax, canonical workflows, gotchas). ${B}Not mandatory${R} —"
+why  "the MCP tools work without it; the skill just makes Claude smarter."
+why  "Re-run \`bash install.sh\` after \`git pull\` to refresh the skill copy."
 
-if [[ -L $SKILL_DST && "$(readlink "$SKILL_DST")" == "$SKILL_SRC" ]]; then
-  ok "skill already symlinked correctly"
-elif [[ -e $SKILL_DST ]]; then
-  warn "$SKILL_DST exists but points elsewhere:"
-  note "    $(readlink "$SKILL_DST" 2>/dev/null || echo "(not a symlink)")"
-  if ask "Replace it with a link to this repo?" "N"; then
-    run "rm -rf $SKILL_DST && ln -s $SKILL_SRC $SKILL_DST"
-    rm -rf "$SKILL_DST"
+if [[ -L $SKILL_DST ]]; then
+  warn "$SKILL_DST is a symlink (from a prior install):"
+  note "    -> $(readlink "$SKILL_DST")"
+  if ask "Replace with a fresh copy?" "Y"; then
+    run "rm $SKILL_DST && cp -R $SKILL_SRC $SKILL_DST"
+    rm "$SKILL_DST"
     mkdir -p "$(dirname "$SKILL_DST")"
-    ln -s "$SKILL_SRC" "$SKILL_DST"
-    ok "skill linked"
+    cp -R "$SKILL_SRC" "$SKILL_DST"
+    ok "skill copied"
   else
     note "skipped"
   fi
-elif ask "Install the skill?" "Y"; then
-  run "mkdir -p $(dirname "$SKILL_DST") && ln -s $SKILL_SRC $SKILL_DST"
+elif [[ -d $SKILL_DST ]]; then
+  warn "$SKILL_DST already exists."
+  if ask "Overwrite with the current version?" "Y"; then
+    run "rm -rf $SKILL_DST && cp -R $SKILL_SRC $SKILL_DST"
+    rm -rf "$SKILL_DST"
+    cp -R "$SKILL_SRC" "$SKILL_DST"
+    ok "skill copied"
+  else
+    note "skipped"
+  fi
+elif ask "Install the pymol skill? (optional)" "Y"; then
+  run "mkdir -p $(dirname "$SKILL_DST") && cp -R $SKILL_SRC $SKILL_DST"
   mkdir -p "$(dirname "$SKILL_DST")"
-  ln -s "$SKILL_SRC" "$SKILL_DST"
-  ok "skill linked"
+  cp -R "$SKILL_SRC" "$SKILL_DST"
+  ok "skill copied"
 else
-  note "skipped"
+  note "skipped — clamol MCP tools still work without the skill"
 fi
 
 # ─── step 3: MCP register ──────────────────────────────────────────────────

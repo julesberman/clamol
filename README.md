@@ -35,7 +35,7 @@ bash install.sh
 `install.sh` is interactive — it explains each step and asks before doing anything. Three things happen:
 
 1. Creates `.venv/`, installs clamol editable, and symlinks the `clamol` / `clamol-launch-pymol` console scripts into `~/.local/bin/` so they're on `$PATH`.
-2. Symlinks the `pymol` skill into `~/.claude/skills/pymol/`.
+2. Copies the `pymol` skill into `~/.claude/skills/pymol/`. **Optional** — the MCP tools work without it; the skill just teaches Claude when to use them. Re-run `install.sh` after `git pull` to refresh.
 3. Registers clamol as a **user-scope** MCP server in Claude Code via `claude mcp add -s user`.
 
 > If `~/.local/bin` isn't on your `$PATH`, the installer prints a one-line snippet to add to your shell rc.
@@ -102,7 +102,7 @@ The editable install means new code is picked up on the next `claude` session. N
 
 ```bash
 claude mcp remove clamol -s user
-rm ~/.claude/skills/pymol
+rm -rf ~/.claude/skills/pymol
 rm ~/.local/bin/clamol ~/.local/bin/clamol-launch-pymol
 rm -rf /path/to/clamol  # optional — delete the clone
 ```
